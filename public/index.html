@@ -1,0 +1,717 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>MijnTelewerk</title>
+  <meta name="description" content="Plan telewerk, verlof en kantoordagen en bewaak automatisch je telewerkpercentage." />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<header class="topbar">
+  <div class="topbar-inner">
+  <div class="brand">
+    <div class="logo logo-mark" aria-hidden="true">
+      <svg viewBox="0 0 48 48" role="img" focusable="false">
+        <path class="logo-roof" d="M9.5 22.2 24 10.3l14.5 11.9"/>
+        <path class="logo-house" d="M13.5 20.2v17.2h21V20.2"/>
+        <path class="logo-screen" d="M18 24.2h12v8H18z"/>
+        <path class="logo-desk" d="M16.4 35h15.2M24 32.2V35"/>
+        <circle class="logo-dot" cx="36.5" cy="12.5" r="3"/>
+      </svg>
+    </div>
+    <div><h1>MijnTelewerk</h1><p data-i18n="brandTagline">Plan slim. Hou je percentage onder controle.</p></div>
+  </div>
+  <div class="top-actions">
+    <button id="exportBtn" class="btn secondary" data-i18n="export">Export</button>
+    <button id="printBtn" class="btn secondary" data-i18n="print">Print</button>
+    <div class="personal-actions-wrap">
+      <div class="personal-actions">
+        <button id="accountBtn" class="btn account-btn" type="button"><span id="accountIcon" aria-hidden="true">👤︎</span> <span id="accountLabel" data-i18n="account">Account</span></button>
+        <button id="themeBtn" class="btn theme-btn" type="button" aria-pressed="false" title="Dark mode inschakelen"><span id="themeIcon">🌙</span> <span id="themeLabel">Dark mode</span></button>
+        <label class="language-control" title="Taal / Langue / Language"><span class="sr-only">Taal</span><select id="languageSelect" aria-label="Taal"><option value="nl">NL</option><option value="fr">FR</option><option value="en">EN</option></select></label>
+      </div>
+      <div id="themeToast" class="theme-toast" role="status" aria-live="polite"></div>
+    </div>
+  </div>
+  </div>
+</header>
+
+<div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+<main class="shell">
+  <section class="view-tabs" aria-label="Weergave">
+    <button id="monthViewBtn" class="view-tab active" type="button" data-i18n="monthView">Maand</button>
+    <button id="yearViewBtn" class="view-tab" type="button" data-i18n="yearOverview">Jaaroverzicht</button>
+  </section>
+
+  <section class="layout">
+    <aside class="sidebar">
+      <div class="card panel">
+        <div class="section-head legend-head">
+          <div><h2 data-i18n="legend">Legenda</h2></div>
+          <button id="addCategoryBtn" class="icon-btn" title="Categorie toevoegen" aria-label="Categorie toevoegen" data-i18n-title="addCategory" data-i18n-aria="addCategory">+</button>
+        </div>
+        <label class="legend-daypart">
+          <span data-i18n="input">Invoer</span>
+          <select id="dayPartSelect">
+            <option value="full" data-i18n="fullDay">Hele dag</option>
+            <option value="am" data-i18n="morningHalf">Voormiddag (½ dag)</option>
+            <option value="pm" data-i18n="afternoonHalf">Namiddag (½ dag)</option>
+          </select>
+        </label>
+        <div id="legendList" class="legend-list"></div>
+      </div>
+
+      <div class="card panel quick-fill-panel">
+        <div class="section-head quick-fill-head">
+          <div class="quick-fill-title-row">
+            <h2 data-i18n="quickFill">Terugkerende dag & periode</h2>
+            <span class="section-help-wrap">
+              <button class="section-help-btn" type="button" aria-describedby="quickFillHelpTooltip" data-i18n-aria="quickFillHelpLabel">?</button>
+              <span id="quickFillHelpTooltip" class="section-help-tooltip" role="tooltip" data-i18n="quickFillHint">Vul een vaste weekdag of meerdere dagen in één keer in.</span>
+            </span>
+          </div>
+        </div>
+        <div class="fill-mode" role="group" aria-label="Manier van snel invullen">
+          <button id="recurringModeBtn" class="fill-mode-btn active" type="button" data-i18n="fixedWeekday">Vaste weekdag</button>
+          <button id="rangeModeBtn" class="fill-mode-btn" type="button" data-i18n="period">Periode</button>
+        </div>
+
+        <div id="recurringFields">
+          <label><span data-i18n="weekday">Weekdag</span>
+            <select id="recurringWeekday">
+              <option value="1" data-i18n="monday">Maandag</option><option value="2" data-i18n="tuesday">Dinsdag</option><option value="3" data-i18n="wednesday">Woensdag</option>
+              <option value="4" data-i18n="thursday">Donderdag</option><option value="5" data-i18n="friday">Vrijdag</option><option value="6" data-i18n="saturday">Zaterdag</option><option value="0" data-i18n="sunday">Zondag</option>
+            </select>
+          </label>
+        </div>
+
+        <div id="rangeFields" class="hidden range-fields">
+          <div class="range-date-grid">
+            <label><span data-i18n="from">Van</span><input id="rangeStart" type="date"></label>
+            <label><span data-i18n="to">Tot</span><input id="rangeEnd" type="date"></label>
+          </div>
+          <label class="check-row"><input id="rangeSkipWeekends" type="checkbox" checked><span data-i18n="skipWeekends">Weekends overslaan</span></label>
+          <label class="check-row"><input id="rangeSkipHolidays" type="checkbox" checked><span data-i18n="skipHolidays">Wettelijke feestdagen overslaan</span></label>
+        </div>
+
+
+        <label><span data-i18n="category">Categorie</span><select id="recurringCategory"></select></label>
+        <label><span data-i18n="dayPart">Dagdeel</span>
+          <select id="recurringDayPart">
+            <option value="full" data-i18n="fullDay">Hele dag</option>
+            <option value="am" data-i18n="morningHalf">Voormiddag (½ dag)</option>
+            <option value="pm" data-i18n="afternoonHalf">Namiddag (½ dag)</option>
+          </select>
+        </label>
+        <div id="recurringActions" class="stack">
+          <button id="applyRecurringMonth" class="btn secondary" data-i18n="applyMonth">Toepassen op maand</button>
+          <button id="applyRecurringYear" class="btn ghost" data-i18n="applyYear">Toepassen op jaar</button>
+        </div>
+        <button id="applyRangeBtn" class="btn secondary hidden range-apply" type="button" data-i18n="fillPeriod">Periode invullen</button>
+      </div>
+    </aside>
+
+    <section class="content">
+      <section class="card stats-strip planner-status no-print" aria-label="Telewerkstatus">
+        <article class="strip-stat strip-percent">
+          <span class="eyebrow" data-i18n="teleworkPercentage">Telewerkpercentage</span>
+          <div class="strip-main-row"><strong id="currentPercent" class="strip-big">0,0%</strong><small id="statusText">Nog geen gewerkte dagen ingepland.</small></div>
+          <div class="progress compact-progress"><div id="progressBar"></div></div>
+        </article>
+        <div class="strip-divider" aria-hidden="true"></div>
+        <section id="funBanner" class="fun-banner planner-fun-status" aria-live="polite">
+          <div class="fun-icon" id="funIcon">👋</div>
+          <div class="fun-copy"><strong id="funTitle">Welkom bij MijnTelewerk</strong><p id="funMessage">Vul je planning in en wij houden de telewerkbalans in de gaten.</p></div>
+        </section>
+      </section>
+
+      <div class="card planning-card planner-attached">
+        <div class="planning-toolbar no-print">
+          <div class="planning-period">
+            <span class="eyebrow" data-i18n="planning">Planning</span>
+            <div class="planning-selects">
+              <select id="monthSelect" aria-label="Maand"></select>
+              <select id="yearSelect" aria-label="Jaar"></select>
+            </div>
+          </div>
+
+          <div class="planning-tools planning-metrics">
+            <div id="teleworkMetric" class="planning-metric telework-metric">
+              <span data-i18n="teleworkDays">Telewerkdagen</span>
+              <div class="telework-metric-content">
+                <strong id="teleworkCount">0</strong>
+                <small id="remainingText" class="telework-remaining">Nog 0 dagen berekend.</small>
+              </div>
+            </div>
+            <div class="planning-metric">
+              <span data-i18n="workedDays">Gewerkte dagen</span>
+              <strong id="workedCount">0</strong>
+            </div>
+            <label class="max-inline-control planning-metric max-metric" for="maxPercent">
+              <span data-i18n="maxTelework">Max. telewerk</span>
+              <span class="max-inline-input"><input id="maxPercent" type="number" min="0" max="100" step="0.1" value="60"><b>%</b></span>
+            </label>
+            <button id="resetBtn" class="btn reset-btn planning-reset-btn" type="button" data-i18n="reset">Reset</button>
+          </div>
+        </div>
+
+        <div class="month-view" id="monthPrintArea">
+          <div class="print-only print-heading"><span class="eyebrow" data-i18n="planning">Planning</span><h2 id="monthTitle"></h2></div>
+          <div class="calendar-scroll"><div id="calendar" class="calendar"></div></div>
+        </div>
+
+        <div class="year-view hidden" id="yearPrintArea">
+          <div class="year-toolbar">
+            <div><span class="eyebrow" data-i18n="yearOverview">Jaaroverzicht</span><h2 id="yearTitle"></h2></div>
+          </div>
+          <div id="yearOverview" class="year-overview"></div>
+        </div>
+
+        <div class="planner-bottom-tabs no-print">
+          <button id="monthTotalsBtn" class="planner-bottom-tab month-totals-tab" type="button" aria-haspopup="dialog">
+            <span class="planner-bottom-tab-icon month-totals-tab-icon" aria-hidden="true">
+              <svg viewBox="0 0 20 20" focusable="false"><path d="M3 16V9h3v7H3Zm5 0V4h3v12H8Zm5 0v-5h3v5h-3Z"/></svg>
+            </span>
+            <span data-i18n="monthTotals">Maandtotaal</span>
+            <span class="planner-bottom-tab-chevron" aria-hidden="true">›</span>
+          </button>
+
+          <button id="leavePlannerToggle" class="planner-bottom-tab leave-planner-bottom-tab" type="button" aria-expanded="false" aria-controls="leavePlannerDrawerPanel" data-i18n-aria="openLeavePlanner">
+            <span class="planner-bottom-tab-icon" aria-hidden="true">🏖️</span>
+            <span data-i18n="smartLeavePlanner">Slimme verlofplanner</span>
+            <span class="planner-bottom-tab-chevron" aria-hidden="true">›</span>
+          </button>
+        </div>
+
+        <div class="planner-bottom-help planner-bottom-right-tabs no-print">
+          <button id="standardScheduleBtn" class="planner-bottom-tab planner-standard-schedule-tab" type="button">
+            <span class="planner-bottom-tab-icon" aria-hidden="true">🗓️</span>
+            <span class="standard-schedule-tab-label" data-i18n="standardTeleworkWeek">Standaard telewerkweek</span>
+          </button>
+          <button id="helpBtn" class="planner-bottom-tab planner-help-tab" type="button" aria-label="Uitleg over berekening en feestdagen" title="Hoe werkt de berekening?" data-i18n-title="helpTitle">?</button>
+        </div>
+
+        <aside id="leavePlannerDrawer" class="leave-planner-side leave-planner-drawer no-print" aria-label="Slimme verlofplanner">
+          <section id="leavePlannerDrawerPanel" class="card panel leave-planner-panel">
+            <div class="leave-planner-panel-head">
+              <div>
+                <span class="eyebrow" data-i18n="smartLeavePlanner">Slimme verlofplanner</span>
+                <h2 id="leavePlannerTitle">Verlofsuggesties</h2>
+                <p data-i18n="leavePlannerIntro">MijnTelewerk zoekt naar veel aaneengesloten vrije kalenderdagen met zo weinig mogelijk extra verlof.</p>
+              </div>
+              <button id="leavePlannerClose" class="leave-planner-close" type="button" data-i18n-aria="closeLeavePlanner" aria-label="Verlofplanner sluiten">×</button>
+            </div>
+            <div class="fill-mode leave-planner-modes" role="tablist" aria-label="Verlofplanner modus">
+              <button id="leaveBridgeModeBtn" class="fill-mode-btn active" type="button" data-i18n="leaveBridgeMode">Slimme brugdagen</button>
+              <button id="leaveLongModeBtn" class="fill-mode-btn" type="button" data-i18n="leaveLongMode">Lang verlof</button>
+            </div>
+            <section id="leaveLongControls" class="leave-long-controls hidden">
+              <div class="leave-long-copy">
+                <strong data-i18n="leaveLongQuestion">Hoe lang wil je aaneengesloten vrij zijn?</strong>
+                <small data-i18n="leaveLongHint">MijnTelewerk zoekt de periode waarvoor je zo weinig mogelijk verlofdagen nodig hebt.</small>
+              </div>
+              <div class="leave-long-form">
+                <label class="leave-weeks-input"><input id="leaveTargetWeeks" type="number" min="1" max="8" step="0.5" value="2"><span data-i18n="weeks">weken</span></label>
+                <label class="check-row"><input id="includeTeleworkExtension" type="checkbox" checked><span data-i18n="includeTeleworkExtension">Toon ook hoe lang je niet naar kantoor hoeft dankzij aansluitende telewerkdagen</span></label>
+                <div class="leave-month-filter">
+                  <div class="leave-month-filter-copy">
+                    <strong data-i18n="leaveLongMonths">Wanneer wil je ongeveer verlof nemen?</strong>
+                  </div>
+                  <div class="leave-month-actions">
+                    <button id="leaveAllMonthsBtn" class="btn secondary leave-all-months active" type="button" aria-pressed="true" data-i18n="leaveAllMonths">Alle maanden</button>
+                    <div class="leave-month-menu-wrap">
+                      <button id="leaveChooseMonthsBtn" class="btn secondary leave-choose-months" type="button" aria-expanded="false" aria-controls="leaveMonthMenu">
+                        <span id="leaveChooseMonthsLabel" data-i18n="leaveChooseMonths">Maanden kiezen</span>
+                        <span class="leave-month-menu-chevron" aria-hidden="true">⌄</span>
+                      </button>
+                      <div id="leaveMonthMenu" class="leave-month-menu hidden" role="group" aria-label="Maanden kiezen">
+                        <div id="leaveMonthChoices" class="workday-picker leave-month-choices"></div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <p class="leave-telework-note" data-i18n="teleworkNotLeaveNote">Telewerk telt nooit als verlof. Het wordt alleen apart getoond als extra periode waarin je niet naar kantoor hoeft.</p>
+            </section>
+            <div id="leaveSuggestionList" class="leave-suggestion-list"></div>
+          </section>
+        </aside>
+      </div>
+
+
+    </section>
+
+
+  </section>
+</main>
+
+
+<dialog id="onboardingDialog" class="onboarding-dialog">
+  <div class="dialog-card onboarding-card">
+    <div class="onboarding-head">
+      <div>
+        <span class="eyebrow" data-i18n="onboardingEyebrow">Eerste instelling</span>
+        <h2 data-i18n="onboardingTitle">Maak MijnTelewerk meteen van jou</h2>
+        <p data-i18n="onboardingIntro">Vijf korte keuzes en je planner staat goed ingesteld.</p>
+      </div>
+      <span id="onboardingProgress" class="onboarding-progress">1/5</span>
+    </div>
+
+    <section class="onboarding-step" data-onboarding-step="1">
+      <div class="onboarding-question-icon">📊</div>
+      <h3 data-i18n="onboardingStep1">Wat is je maximum telewerkpercentage?</h3>
+      <p data-i18n="onboardingStep1Hint">Je kunt dit later altijd aanpassen in de planning.</p>
+      <label class="onboarding-percent"><input id="onboardingMaxPercent" type="number" min="0" max="100" step="0.1" value="60"><b>%</b></label>
+    </section>
+
+    <section class="onboarding-step hidden" data-onboarding-step="2">
+      <div class="onboarding-question-icon">🗓️</div>
+      <h3 data-i18n="onboardingStep2">Welke dagen horen normaal bij je werkweek?</h3>
+      <p data-i18n="onboardingStep2Hint">Dit is alleen een standaard voor snel invullen. Elke kalenderdag blijft altijd handmatig invulbaar.</p>
+      <div class="workday-picker">
+        <label><input type="checkbox" data-workday="1"><span data-i18n="dayShortMon">Ma</span></label>
+        <label><input type="checkbox" data-workday="2"><span data-i18n="dayShortTue">Di</span></label>
+        <label><input type="checkbox" data-workday="3"><span data-i18n="dayShortWed">Wo</span></label>
+        <label><input type="checkbox" data-workday="4"><span data-i18n="dayShortThu">Do</span></label>
+        <label><input type="checkbox" data-workday="5"><span data-i18n="dayShortFri">Vr</span></label>
+        <label><input type="checkbox" data-workday="6"><span data-i18n="dayShortSat">Za</span></label>
+        <label><input type="checkbox" data-workday="0"><span data-i18n="dayShortSun">Zo</span></label>
+      </div>
+    </section>
+
+    <section class="onboarding-step hidden" data-onboarding-step="3">
+      <div class="onboarding-question-icon">🏠</div>
+      <h3 data-i18n="onboardingStep3">Heb je vaste telewerkdagen?</h3>
+      <p data-i18n="onboardingStep3Hint">Selecteer je vaste thuiswerkdagen. Laat alles leeg als je flexibel telewerkt.</p>
+      <div class="workday-picker">
+        <label><input type="checkbox" data-teleworkday="1"><span data-i18n="dayShortMon">Ma</span></label>
+        <label><input type="checkbox" data-teleworkday="2"><span data-i18n="dayShortTue">Di</span></label>
+        <label><input type="checkbox" data-teleworkday="3"><span data-i18n="dayShortWed">Wo</span></label>
+        <label><input type="checkbox" data-teleworkday="4"><span data-i18n="dayShortThu">Do</span></label>
+        <label><input type="checkbox" data-teleworkday="5"><span data-i18n="dayShortFri">Vr</span></label>
+        <label><input type="checkbox" data-teleworkday="6"><span data-i18n="dayShortSat">Za</span></label>
+        <label><input type="checkbox" data-teleworkday="0"><span data-i18n="dayShortSun">Zo</span></label>
+      </div>
+      <label class="check-row onboarding-apply-schedule"><input id="onboardingApplySchedule" type="checkbox"><span data-i18n="onboardingApplySchedule">Vul lege werkdagen van dit jaar meteen in als Telewerk/Kantoor</span></label>
+    </section>
+
+    <section class="onboarding-step hidden" data-onboarding-step="4">
+      <div class="onboarding-question-icon">🏖️</div>
+      <h3 data-i18n="onboardingStep4Leave">Hoeveel verlofdagen heb je dit jaar?</h3>
+      <p data-i18n="onboardingStep4LeaveHint">Optioneel. Hiermee kan MijnTelewerk je verlofbudget bewaken en slimme momenten voorstellen.</p>
+      <label class="onboarding-percent onboarding-leave-budget"><input id="onboardingLeaveBudget" type="number" min="0" max="365" step="0.5" placeholder="20"><b data-i18n="leaveBudgetDays">dagen</b></label>
+      <small class="onboarding-field-note" data-i18n="onboardingLeaveOptional">Niet invullen = geen verlofbudget opvolgen</small>
+    </section>
+
+    <section class="onboarding-step hidden" data-onboarding-step="5">
+      <div class="onboarding-question-icon">🎉</div>
+      <h3 data-i18n="onboardingStep5">Belgische feestdagen automatisch tonen?</h3>
+      <p data-i18n="onboardingStep4Hint">De 10 wettelijke feestdagen worden automatisch berekend. Vervangingsdagen blijven handmatig.</p>
+      <div class="onboarding-radio-grid">
+        <label><input type="radio" name="onboardingHolidays" value="yes"><span><small>✅</small><strong data-i18n="onboardingYes">Ja, automatisch</strong></span></label>
+        <label><input type="radio" name="onboardingHolidays" value="no"><span><small>✍️</small><strong data-i18n="onboardingNo">Nee, ik vul ze zelf in</strong></span></label>
+      </div>
+    </section>
+
+    <div class="onboarding-actions">
+      <button id="onboardingLaterBtn" class="btn ghost" type="button" data-i18n="onboardingLater">Later instellen</button>
+      <div class="onboarding-nav">
+        <button id="onboardingBackBtn" class="btn secondary hidden" type="button" data-i18n="onboardingBack">Terug</button>
+        <button id="onboardingNextBtn" class="btn primary" type="button" data-i18n="onboardingNext">Volgende</button>
+        <button id="onboardingStartBtn" class="btn primary hidden" type="button" data-i18n="onboardingStart">Start mijn planning</button>
+      </div>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="helpDialog">
+  <div class="dialog-card help-dialog-card">
+    <div class="help-dialog-head">
+      <div><span class="eyebrow" data-i18n="explanation">Uitleg</span><h2 data-i18n="howItWorks">Hoe werkt MijnTelewerk?</h2></div>
+      <button id="closeHelpBtn" class="icon-btn" type="button" aria-label="Sluiten">×</button>
+    </div>
+    <section class="help-section">
+      <div class="help-section-icon">📊</div>
+      <div><h3 data-i18n="teleworkPercentage">Telewerkpercentage</h3><p data-i18n-html="calcExplanation">Telewerk en kantoor tellen als gewerkte tijd. Het jaarpercentage is <strong>telewerk ÷ alle gewerkte tijd × 100</strong>. Een halve dag telt als 0,5.</p></div>
+    </section>
+    <section class="help-section">
+      <div class="help-section-icon">🎉</div>
+      <div><h3 data-i18n="belgianHolidays">Belgische feestdagen</h3><p data-i18n="holidayExplanation">De 10 Belgische wettelijke feestdagen worden automatisch berekend en rood weergegeven. Een vervangingsdag wanneer een feestdag op een niet-gewerkte dag valt, voeg je zelf toe omdat die per werkgever of sector kan verschillen.</p></div>
+    </section>
+    <section class="help-section">
+      <div class="help-section-icon">🗓️</div>
+      <div><h3 data-i18n="standardTeleworkWeek">Standaard telewerkweek</h3><p data-i18n="standardTeleworkWeekExplanation">Kies de weekdagen waarop je normaal telewerkt. Wanneer je het rooster toepast, worden die dagen Telewerk en de overige werkdagen Kantoor. Verlof, Ziek, eigen categorieën en feestdagen blijven behouden.</p></div>
+    </section>
+    <section class="help-section help-contact-section">
+      <div class="help-section-icon">💬</div>
+      <div class="help-contact-content">
+        <h3 data-i18n="feedbackContactTitle">Feedback, bug of suggestie?</h3>
+        <p data-i18n="feedbackContactText">Heb je iets gevonden dat niet klopt of een idee voor MijnTelewerk? Laat het gerust weten.</p>
+
+        <div class="help-feedback-form">
+          <label>
+            <span data-i18n="feedbackType">Type</span>
+            <select id="feedbackType">
+              <option value="feedback" data-i18n="feedbackOptionFeedback">Feedback</option>
+              <option value="bug" data-i18n="feedbackOptionBug">Bug</option>
+              <option value="suggestion" data-i18n="feedbackOptionSuggestion">Suggestie</option>
+            </select>
+          </label>
+
+          <label>
+            <span data-i18n="feedbackMessage">Bericht</span>
+            <textarea id="feedbackMessage" rows="3" maxlength="1200" data-i18n-placeholder="feedbackPlaceholder" placeholder="Beschrijf kort wat je hebt opgemerkt of wat je graag zou zien."></textarea>
+          </label>
+
+          <div class="help-feedback-actions">
+            <small id="feedbackContactHint" data-i18n="feedbackEmailHint">Opent je eigen e-mailapp. Je planning wordt niet meegestuurd.</small>
+            <button id="feedbackContactBtn" class="btn secondary" type="button" data-i18n="feedbackContactButton">Contact opnemen</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <div class="help-footer">
+      <button id="onboardingSettingsBtn" class="btn secondary" type="button" data-i18n="onboardingAdjust">Basisinstellingen aanpassen</button>
+      <button id="helpOkBtn" class="btn primary" type="button" data-i18n="understood">Begrepen</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="accountDialog">
+  <div class="dialog-card account-dialog-card">
+    <div class="account-dialog-head">
+      <div>
+        <span class="eyebrow" data-i18n="accountTitle">MijnTelewerk Account</span>
+        <h2 id="accountDialogTitle" data-i18n="accountEverywhere">Je planning overal bijhouden</h2>
+      </div>
+      <button id="closeAccountBtn" class="icon-btn" type="button" aria-label="Sluiten">×</button>
+    </div>
+
+    <section id="accountNotConfigured" class="account-state hidden">
+      <div class="account-note">🔧 <strong data-i18n="backendNotLinked">Accountbackend nog niet gekoppeld.</strong></div>
+      <p data-i18n-html="backendLocalExplanation">De planner blijft volledig lokaal werken. Vul eerst <code>config.js</code> in met je Supabase-projectgegevens om accounts te activeren.</p>
+      <small data-i18n="rlsHint">De publieke anon key mag in de browser staan; toegang tot planningen wordt in de database met Row Level Security beperkt tot de ingelogde gebruiker.</small>
+    </section>
+
+    <section id="accountSignedOut" class="account-state hidden">
+      <div class="account-hero-icon">✉️</div>
+      <h3 data-i18n="passwordlessLogin">Inloggen zonder wachtwoord</h3>
+      <p data-i18n="magicLinkIntro">Vul je e-mailadres in. Je ontvangt een beveiligde magic link waarmee je meteen kunt inloggen.</p>
+      <form id="magicLinkForm" class="account-form">
+        <label><span data-i18n="emailAddress">E-mailadres</span>
+          <input id="accountEmail" type="email" autocomplete="email" required placeholder="jij@voorbeeld.be">
+        </label>
+        <button id="magicLinkBtn" class="btn primary" type="submit" data-i18n="sendMagicLink">Stuur magic link</button>
+      </form>
+      <div id="authFeedback" class="account-feedback" aria-live="polite"></div>
+      <small data-i18n="accountLocalHint">Door een account te gebruiken kan je planning later tussen toestellen synchroniseren. Zonder account blijven je gegevens lokaal in deze browser.</small>
+    </section>
+
+    <section id="accountSignedIn" class="account-state hidden">
+      <div class="signed-in-row">
+        <div class="avatar">👋</div>
+        <div><small data-i18n="signedInAs">Ingelogd als</small><strong id="signedInEmail">—</strong></div>
+        <span id="syncBadge" class="sync-badge">Lokaal</span>
+      </div>
+
+      <div class="account-sync-card">
+        <div>
+          <h3><span data-i18n="cloudPlanning">Cloudplanning</span> <span id="accountYearLabel"></span></h3>
+          <p id="cloudStatusText" data-i18n="cloudStatusInitial">Controleer of er voor dit jaar al een planning in je account staat.</p>
+        </div>
+        <button id="checkCloudBtn" class="btn secondary" type="button" data-i18n="checkCloud">Controleer cloud</button>
+      </div>
+
+      <div class="account-actions-grid">
+        <button id="uploadYearBtn" class="choice-btn" type="button"><span>☁️</span><div><strong data-i18n="uploadCurrentYear">Upload huidig jaar</strong><small data-i18n="uploadHint">Bewaar deze lokale jaarplanning in je account</small></div></button>
+        <button id="downloadYearBtn" class="choice-btn" type="button"><span>⬇️</span><div><strong data-i18n="downloadCloud">Laad uit cloud</strong><small data-i18n="downloadHint">Vervang dit lokale jaar door je cloudplanning</small></div></button>
+      </div>
+
+      <label class="toggle-row">
+        <span><strong data-i18n="autoSync">Automatisch synchroniseren</strong><small data-i18n="autoSyncHint">Na een eerste handmatige upload of download worden wijzigingen automatisch opgeslagen.</small></span>
+        <input id="autoSyncToggle" type="checkbox">
+      </label>
+
+
+      <section class="account-settings-card">
+        <div class="account-settings-head">
+          <span class="settings-icon">🔔</span>
+          <div><h3 data-i18n="reminderEmails">Herinnering op website</h3><p data-i18n="reminderHint">Kies wanneer MijnTelewerk bij je volgende bezoek een pop-up toont om je telewerk door te geven.</p></div>
+        </div>
+        <label class="toggle-row compact-toggle">
+          <span><strong data-i18n="reminderEnabled">Herinnering inschakelen</strong><small id="reminderDeliveryHint" data-i18n="reminderMailPending">De melding verschijnt alleen wanneer je MijnTelewerk opent.</small></span>
+          <input id="reminderEnabledToggle" type="checkbox">
+        </label>
+        <div id="reminderControls" class="account-settings-controls">
+          <div class="field-grid two-col">
+            <label><span data-i18n="reminderMonthlyMode">Wanneer wil je herinnerd worden?</span>
+              <select id="reminderMonthlyMode">
+                <option value="first_workday" data-i18n="reminderFirstWorkday">Eerste werkdag van de maand</option>
+                <option value="last_workday" data-i18n="reminderLastWorkday">Laatste werkdag van de maand</option>
+                <option value="fixed" data-i18n="reminderFixedDay">Specifieke dag van de maand</option>
+              </select>
+            </label>
+            <label id="reminderDayOfMonthWrap" class="hidden"><span data-i18n="reminderDayOfMonth">Dag van de maand</span><input id="reminderDayOfMonth" type="number" min="1" max="28" value="25"></label>
+          </div>
+          <button id="saveReminderBtn" class="btn secondary" type="button" data-i18n="saveReminderSettings">Herinnering bewaren</button>
+          <div id="reminderFeedback" class="account-feedback" aria-live="polite"></div>
+        </div>
+      </section>
+
+      <section class="account-settings-card">
+        <div class="account-settings-head">
+          <span class="settings-icon">🌴</span>
+          <div><h3 data-i18n="welcomeBack">Welkom terug</h3><p data-i18n="welcomeBackHint">Toon één keer een grappig bericht op je eerste werkdag na een lange geplande verlofperiode.</p></div>
+        </div>
+        <label class="toggle-row compact-toggle">
+          <span><strong data-i18n="welcomeBackEnabled">Welkom-terugbericht inschakelen</strong><small data-i18n="welcomeBackNote">De melding gebruikt alleen je geplande Verlof-dagen en verschijnt maximaal één keer per verlofperiode.</small></span>
+          <input id="welcomeBackToggle" type="checkbox" checked>
+        </label>
+        <div class="field-grid two-col account-preference-row">
+          <label><span data-i18n="welcomeBackMinDays">Vanaf hoeveel verlofdagen?</span><input id="welcomeBackMinDays" type="number" min="2" max="30" value="5"></label>
+          <div class="preference-action"><button id="savePreferencesBtn" class="btn secondary" type="button" data-i18n="saveAccountPreferences">Accountvoorkeuren bewaren</button></div>
+        </div>
+        <div id="preferencesFeedback" class="account-feedback" aria-live="polite"></div>
+      </section>
+
+      <div class="dialog-actions account-footer-actions">
+        <button id="signOutBtn" class="btn ghost" type="button" data-i18n="signOut">Uitloggen</button>
+      </div>
+    </section>
+  </div>
+</dialog>
+
+
+<dialog id="teleworkReminderDialog" class="telework-reminder-dialog">
+  <div class="dialog-card reminder-popup-card">
+    <div class="reminder-popup-icon">🔔</div>
+    <div>
+      <span class="eyebrow" data-i18n="reminderPopupEyebrow">Herinnering</span>
+      <h2 data-i18n="reminderPopupTitle">Telewerk nog doorgeven?</h2>
+      <p id="teleworkReminderText" data-i18n="reminderPopupText">Vergeet niet je telewerkgegevens door te geven aan je werkgever.</p>
+    </div>
+    <div class="reminder-popup-actions">
+      <button id="reminderLaterBtn" class="btn ghost" type="button" data-i18n="reminderLater">Later herinneren</button>
+      <button id="reminderDoneBtn" class="btn primary" type="button" data-i18n="reminderDone">In orde ✓</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="accountPromoDialog" class="account-promo-dialog">
+  <div class="dialog-card account-promo-card">
+    <div class="account-promo-icon">☁️</div>
+    <div>
+      <span class="eyebrow" data-i18n="accountPromoEyebrow">Gratis account</span>
+      <h2 data-i18n="accountPromoTitle">Je planning begint vorm te krijgen</h2>
+      <p data-i18n="accountPromoText">Bewaar je planning veilig in je account en bekijk ze later ook op je andere toestellen.</p>
+    </div>
+    <div class="account-promo-benefits">
+      <span>☁️ <b data-i18n="accountPromoBackup">Cloudbackup</b></span>
+      <span>🔄 <b data-i18n="accountPromoSync">Synchronisatie tussen toestellen</b></span>
+      <span>🔔 <b data-i18n="accountPromoReminders">Persoonlijke herinneringen</b></span>
+    </div>
+    <div class="account-promo-actions">
+      <button id="promoNeverBtn" class="btn ghost promo-never" type="button" data-i18n="accountPromoNever">Niet meer tonen</button>
+      <button id="promoLaterBtn" class="btn secondary" type="button" data-i18n="accountPromoLater">Later</button>
+      <button id="promoCreateAccountBtn" class="btn account-btn promo-account-btn" type="button"><span aria-hidden="true">☁</span> <span data-i18n="accountPromoCreate">Gratis account maken</span></button>
+    </div>
+  </div>
+</dialog>
+
+
+
+<dialog id="holidayWorkDialog" class="holiday-work-dialog">
+  <div class="dialog-card holiday-work-card">
+    <div class="holiday-work-head">
+      <div class="holiday-work-icon" aria-hidden="true">🎉</div>
+      <div><span class="eyebrow" data-i18n="holidayWorkEyebrow">Feestdagmodus</span><h2 id="holidayWorkTitle">Werken op een feestdag?</h2></div>
+    </div>
+    <p id="holidayWorkFunny" class="holiday-work-funny"></p>
+    <p id="holidayWorkQuestion" class="holiday-work-question"></p>
+    <label class="holiday-work-count-option">
+      <input id="holidayWorkCountCheckbox" type="checkbox" checked>
+      <span><strong data-i18n="holidayWorkCountLabel">Deze dag laten meetellen voor mijn telewerkpercentage</strong><small data-i18n="holidayWorkCountHint">Zet dit uit als je werkgever gewerkte feestdagen vrijstelt van de telewerkpercentageberekening.</small></span>
+    </label>
+    <div class="dialog-actions holiday-work-actions">
+      <button id="holidayWorkCancelBtn" class="btn ghost" type="button" data-i18n="cancel">Annuleren</button>
+      <button id="holidayWorkConfirmBtn" class="btn primary" type="button">Ja, plan Telewerk</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dayNoteDialog" class="day-note-dialog">
+  <form id="dayNoteForm" class="dialog-card day-note-card">
+    <div class="standard-schedule-dialog-head">
+      <div>
+        <span class="eyebrow" data-i18n="dayNote">Persoonlijke notitie</span>
+        <h2 id="dayNoteDate"></h2>
+      </div>
+      <button id="dayNoteClose" class="dialog-close-btn" type="button" aria-label="Sluiten">×</button>
+    </div>
+    <label>
+      <span data-i18n="dayNote">Persoonlijke notitie</span>
+      <textarea id="dayNoteText" maxlength="500" rows="5" data-i18n-placeholder="dayNotePlaceholder" placeholder="Bijv. afspraak, praktische herinnering…"></textarea>
+    </label>
+    <p class="day-note-hint" data-i18n="dayNoteHint">De notitie wordt mee opgeslagen met je planning en synchroniseert wanneer je een account gebruikt.</p>
+    <div class="dialog-actions day-note-actions">
+      <button id="dayNoteDelete" type="button" class="btn danger hidden" data-i18n="deleteNote">Notitie verwijderen</button>
+      <span class="dialog-action-spacer"></span>
+      <button id="dayNoteCancel" type="button" class="btn ghost" data-i18n="cancel">Annuleren</button>
+      <button type="submit" class="btn primary" data-i18n="saveNote">Notitie opslaan</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="monthTotalsDialog" class="month-totals-dialog">
+  <div class="dialog-card month-totals-dialog-card">
+    <div class="standard-schedule-dialog-head">
+      <div>
+        <span class="eyebrow" data-i18n="monthTotals">Maandtotaal</span>
+        <h2 id="monthTotalsTitle"></h2>
+      </div>
+      <button id="closeMonthTotalsBtn" class="dialog-close-btn" type="button" aria-label="Sluiten">×</button>
+    </div>
+    <div id="monthSummary" class="summary-grid month-summary-grid month-summary-dialog-grid"></div>
+  </div>
+</dialog>
+
+<dialog id="standardScheduleDialog" class="standard-schedule-dialog">
+  <div class="dialog-card standard-schedule-card">
+    <div class="standard-schedule-dialog-head">
+      <div>
+        <span class="eyebrow" data-i18n="standardTeleworkWeek">Vaste telewerkdagen</span>
+        <h2 data-i18n="standardScheduleTitle">Standaard telewerkrooster</h2>
+        <p data-i18n="standardScheduleHint">Kies je vaste telewerkdagen. Overige dagen uit je standaard werkweek worden Kantoor. Bestaande invoer blijft behouden.</p>
+      </div>
+      <button id="closeStandardScheduleBtn" class="dialog-close-btn" type="button" aria-label="Sluiten">×</button>
+    </div>
+    <div class="workday-picker schedule-picker">
+      <label><input type="checkbox" data-standard-telework="1"><span data-i18n="dayShortMon">Ma</span></label>
+      <label><input type="checkbox" data-standard-telework="2"><span data-i18n="dayShortTue">Di</span></label>
+      <label><input type="checkbox" data-standard-telework="3"><span data-i18n="dayShortWed">Wo</span></label>
+      <label><input type="checkbox" data-standard-telework="4"><span data-i18n="dayShortThu">Do</span></label>
+      <label><input type="checkbox" data-standard-telework="5"><span data-i18n="dayShortFri">Vr</span></label>
+      <label><input type="checkbox" data-standard-telework="6"><span data-i18n="dayShortSat">Za</span></label>
+      <label><input type="checkbox" data-standard-telework="0"><span data-i18n="dayShortSun">Zo</span></label>
+    </div>
+    <div class="standard-schedule-note" data-i18n="standardScheduleSafeHint">Alleen lege dagdelen worden ingevuld. Feestdagen worden overgeslagen en je kunt elke dag achteraf aanpassen.</div>
+    <div class="standard-schedule-actions">
+      <button id="applyStandardMonth" class="btn secondary" type="button" data-i18n="applyStandardMonth">Vul maand met standaardrooster</button>
+      <button id="applyStandardYear" class="btn primary" type="button" data-i18n="applyStandardYear">Vul jaar met standaardrooster</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="categoryAppearanceDialog" class="category-appearance-dialog">
+  <form id="categoryAppearanceForm" class="dialog-card">
+    <div class="standard-schedule-dialog-head">
+      <div>
+        <span class="eyebrow" data-i18n="appearance">Weergave</span>
+        <h2 id="categoryAppearanceTitle" data-i18n="customizeCategory">Categorie aanpassen</h2>
+        <p id="categoryAppearanceHint" data-i18n="appearanceHint">De naam en functie blijven vast. Je past alleen de emoji en kleur aan.</p>
+      </div>
+      <button id="closeCategoryAppearanceBtn" class="dialog-close-btn" type="button" aria-label="Sluiten">×</button>
+    </div>
+    <label><span data-i18n="emoji">Emoji</span>
+      <input id="appearanceEmoji" maxlength="4" placeholder="Bijv. 🏠">
+      <span class="emoji-help" data-i18n="quickChoice">Snelle keuze</span>
+      <span class="emoji-presets appearance-emoji-presets" aria-label="Standaard emoji's">
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="🏠">🏠</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="🏡">🏡</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="💻">💻</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="🏢">🏢</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="💼">💼</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="🧑‍💼">🧑‍💼</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="🏖️">🏖️</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="🌴">🌴</button>
+        <button type="button" class="emoji-preset appearance-emoji-preset" data-emoji="✈️">✈️</button>
+      </span>
+    </label>
+    <label><span data-i18n="color">Kleur</span><input id="appearanceColor" type="color" value="#3f9b72"></label>
+    <section id="leaveBudgetSection" class="leave-budget-section hidden">
+      <div class="leave-budget-heading"><div><strong data-i18n="leaveBudget">Verlofbudget</strong><small id="leaveBudgetYear"></small></div></div>
+      <label><span data-i18n="leaveBudgetHint">Hoeveel verlofdagen heb je beschikbaar in het geselecteerde jaar?</span><div class="leave-budget-input"><input id="annualLeaveBudget" type="number" min="0" max="365" step="0.5" placeholder="20"><span data-i18n="leaveBudgetDays">dagen</span></div></label>
+      <div id="leaveBudgetPreview" class="leave-budget-preview"></div>
+      <p class="leave-budget-note" data-i18n="leaveBudgetNoBlock">Extra of overgedragen verlofdagen kun je nog steeds plannen.</p>
+    </section>
+    <div class="dialog-actions">
+      <button id="cancelCategoryAppearanceBtn" type="button" class="btn ghost" data-i18n="cancel">Annuleren</button>
+      <button id="saveCategoryAppearanceBtn" type="submit" class="btn primary" data-i18n="saveChanges">Wijzigingen opslaan</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="categoryDialog">
+  <form id="categoryForm" class="dialog-card">
+    <h2 data-i18n="addCategory">Categorie toevoegen</h2>
+    <label><span data-i18n="name">Naam</span><input id="newCategoryName" required maxlength="30" placeholder="Bijv. ADV"></label>
+    <label><span data-i18n="emoji">Emoji</span>
+      <input id="newCategoryEmoji" maxlength="4" placeholder="Bijv. 🕐">
+      <span class="emoji-help" data-i18n="quickChoice">Snelle keuze</span>
+      <span class="emoji-presets" id="emojiPresets" aria-label="Standaard emoji's">
+        <button type="button" class="emoji-preset" data-emoji="🏠" title="Thuis">🏠</button>
+        <button type="button" class="emoji-preset" data-emoji="🏢" title="Kantoor">🏢</button>
+        <button type="button" class="emoji-preset" data-emoji="🏖️" title="Verlof">🏖️</button>
+        <button type="button" class="emoji-preset" data-emoji="🩺" title="Medisch">🩺</button>
+        <button type="button" class="emoji-preset" data-emoji="🎓" title="Opleiding">🎓</button>
+        <button type="button" class="emoji-preset" data-emoji="🚗" title="Verplaatsing">🚗</button>
+        <button type="button" class="emoji-preset" data-emoji="✈️" title="Reis">✈️</button>
+        <button type="button" class="emoji-preset" data-emoji="🕐" title="Tijd">🕐</button>
+        <button type="button" class="emoji-preset" data-emoji="📌" title="Overig">📌</button>
+      </span>
+    </label>
+    <label><span data-i18n="type">Type</span>
+      <select id="newCategoryType">
+        <option value="neutral" data-i18n="neutralDay">Niet-gewerkte dag / neutraal</option>
+        <option value="telework" data-i18n="telework">Telewerk</option>
+        <option value="office" data-i18n="office">Kantoor</option>
+      </select>
+    </label>
+    <label><span data-i18n="color">Kleur</span><input id="newCategoryColor" type="color" value="#7c8db5"></label>
+    <div class="dialog-actions">
+      <button id="cancelCategoryBtn" type="button" class="btn ghost" data-i18n="cancel">Annuleren</button>
+      <button id="saveCategoryBtn" type="submit" class="btn primary" data-i18n="add">Toevoegen</button>
+    </div>
+  </form>
+</dialog>
+
+<dialog id="printDialog">
+  <div class="dialog-card choice-dialog">
+    <h2 data-i18n="whatPrint">Wat wil je afdrukken?</h2>
+    <p data-i18n="printHint">Kies het overzicht dat je naar de printer of als PDF wilt sturen.</p>
+    <button id="printMonthChoice" class="choice-btn" type="button"><span>📅</span><div><strong data-i18n="currentMonth">Huidige maand</strong><small id="printMonthLabel"></small></div></button>
+    <button id="printYearChoice" class="choice-btn" type="button"><span>🗓️</span><div><strong data-i18n="fullYearOverview">Volledig jaaroverzicht</strong><small id="printYearLabel"></small></div></button>
+    <button id="cancelPrintBtn" type="button" class="btn ghost" data-i18n="cancel">Annuleren</button>
+  </div>
+</dialog>
+
+<dialog id="resetDialog">
+  <div class="dialog-card choice-dialog">
+    <h2 data-i18n="whatReset">Wat wil je resetten?</h2>
+    <p data-i18n="resetHint">Alleen je eigen ingevoerde planning wordt verwijderd. Automatische feestdagen blijven bestaan.</p>
+    <button id="resetMonthChoice" class="choice-btn danger-choice" type="button"><span>🧹</span><div><strong data-i18n="currentMonth">Huidige maand</strong><small id="resetMonthLabel"></small></div></button>
+    <button id="resetYearChoice" class="choice-btn danger-choice" type="button"><span>🗑️</span><div><strong data-i18n="fullYear">Volledig jaar</strong><small id="resetYearLabel"></small></div></button>
+    <button id="cancelResetBtn" type="button" class="btn ghost" data-i18n="cancel">Annuleren</button>
+  </div>
+</dialog>
+
+<dialog id="exportDialog">
+  <div class="dialog-card choice-dialog">
+    <h2 data-i18n="exporting">Exporteren</h2>
+    <p data-i18n="exportHint">Exporteer de planning van het geselecteerde jaar.</p>
+    <button id="exportPdfChoice" class="choice-btn" type="button"><span>📄</span><div><strong>PDF</strong><small data-i18n="pdfHint">Gebruik de printweergave en kies “Opslaan als PDF”</small></div></button>
+    <button id="exportExcelChoice" class="choice-btn" type="button"><span>📊</span><div><strong>Excel (.xlsx)</strong><small data-i18n="excelHint">Dagplanning + maandoverzicht van het geselecteerde jaar</small></div></button>
+    <button id="exportIcsChoice" class="choice-btn" type="button"><span>📆</span><div><strong>Agenda (.ics)</strong><small data-i18n="icsHint">Geschikt voor Apple Agenda, Outlook en andere agenda-apps</small></div></button>
+    <button id="cancelExportBtn" type="button" class="btn ghost" data-i18n="cancel">Annuleren</button>
+  </div>
+</dialog>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="app.js"></script>
+<script src="account.js"></script>
+</body>
+</html>
