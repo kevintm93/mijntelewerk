@@ -204,9 +204,12 @@ function normalizeDays(days){
   return result;
 }
 
-function save(){
+function save(options={}){
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  window.dispatchEvent(new CustomEvent('mijntelewerk:state-changed', {detail:{year:+state.selectedYear}}));
+  window.dispatchEvent(new CustomEvent('mijntelewerk:state-changed', {detail:{
+    year:+state.selectedYear,
+    planningInteraction:options.planningInteraction===true
+  }}));
 }
 
 let toastTimer = null;
@@ -448,7 +451,7 @@ function renderLeavePlanner(){
 }
 function renderLongLeaveMonthChoices(){const wrap=$('leaveMonthChoices');if(!wrap)return;const previous=wrap.children.length?selectedLongLeaveMonths():months.map((_,i)=>i);wrap.innerHTML=months.map((name,i)=>`<label><input type="checkbox" data-month="${i}" ${previous.includes(i)?'checked':''}><span>${esc(name.slice(0,3))}</span></label>`).join('');wrap.dataset.language=state.language;wrap.querySelectorAll('input[data-month]').forEach(cb=>cb.onchange=()=>{syncAllMonthsChoice();if(leavePlannerMode==='long')renderLeavePlanner();});syncAllMonthsChoice();}
 function syncAllMonthsChoice(){const all=$('leaveAllMonthsBtn'),checks=[...document.querySelectorAll('#leaveMonthChoices input[data-month]')],selected=checks.filter(cb=>cb.checked),allOn=checks.length>0&&selected.length===checks.length,label=$('leaveChooseMonthsLabel');if(all){all.classList.toggle('active',allOn);all.setAttribute('aria-pressed',String(allOn));}if(label){label.textContent=allOn?t('leaveChooseMonths'):t('leaveMonthsSelected',{count:selected.length});}}
-function applyLeaveSuggestion(i){const s=currentLeaveSuggestions[i];if(!s)return;for(const p of s.parts){const k=key(p.y,p.m,p.d),slots=state.days[k]||{am:null,pm:null},cur=slots[p.part];if(cur==null||cur==='telework'||cur==='office')slots[p.part]='leave';state.days[k]=slots;}save();renderAll();renderLeavePlanner();showToast(t('suggestionPlanned',{cost:formatNumber(s.cost),days:s.days}));}
+function applyLeaveSuggestion(i){const s=currentLeaveSuggestions[i];if(!s)return;for(const p of s.parts){const k=key(p.y,p.m,p.d),slots=state.days[k]||{am:null,pm:null},cur=slots[p.part];if(cur==null||cur==='telework'||cur==='office')slots[p.part]='leave';state.days[k]=slots;}save({planningInteraction:true});renderAll();renderLeavePlanner();showToast(t('suggestionPlanned',{cost:formatNumber(s.cost),days:s.days}));}
 
 function removeCategory(id){
   if(!confirm(t('confirmDelete')))return;
@@ -601,7 +604,7 @@ function renderCalendar(){
         return;
       }
       applyToDate(cy,cm,d,selected,state.selectedDayPart);
-      save();renderAll();
+      save({planningInteraction:true});renderAll();
       if(selected==='leave'){const w=leaveOverWarning(cy);if(w)showToast(w,3800);}
     };
     cal.appendChild(b);
@@ -670,7 +673,7 @@ function confirmHolidayWork(){
   else state.holidayWorkExemptions[p.dateKey]=true;
   pendingHolidayWork=null;
   $('holidayWorkDialog').close();
-  save();
+  save({planningInteraction:true});
   renderAll();
 }
 function applyToDate(y,m,d,categoryId,part){
@@ -813,7 +816,7 @@ function recurring(scope){
       setDateAssignment(y,m,d,id,part);count++;
     }
   }
-  save();renderAll();
+  save({planningInteraction:true});renderAll();
   const filledMsg=state.language==='fr'?`✅ ${count} ${count===1?'jour':'jours'} rempli${count===1?'':'s'}.`:state.language==='en'?`✅ ${count} ${count===1?'day':'days'} filled.`:`✅ ${count} ${count===1?'dag':'dagen'} ingevuld.`;
   const holidayMsg=skippedHolidays?(state.language==='fr'?` ${skippedHolidays} jour${skippedHolidays===1?' férié a été ignoré.':'s fériés ont été ignorés.'}`:state.language==='en'?` ${skippedHolidays} public holiday${skippedHolidays===1?' was':'s were'} skipped.`:` ${skippedHolidays} feestdag${skippedHolidays===1?' is':'en zijn'} overgeslagen.`):'';
   const leaveWarning=id==='leave'?leaveOverWarning(y):'';showToast((filledMsg+holidayMsg)+(leaveWarning?` ${leaveWarning}`:''),leaveWarning?4200:2400);
@@ -840,7 +843,7 @@ function fillRange(){
     if(skipHolidays&&legalHoliday)continue;
     setDateAssignment(y,m,d,id,part);count++;
   }
-  save();renderAll();let msg=count?(state.language==='fr'?`✅ ${count} ${count===1?'jour':'jours'} rempli${count===1?'':'s'}.`:state.language==='en'?`✅ ${count} ${count===1?'day':'days'} filled.`:`✅ ${count} ${count===1?'dag':'dagen'} ingevuld.`):(state.language==='fr'?'ℹ️ Aucun jour rempli avec ces filtres.':state.language==='en'?'ℹ️ No days filled with these filters.':'ℹ️ Geen dagen ingevuld met deze filters.');const leaveWarning=id==='leave'?leaveOverWarning(selectedYear):'';if(leaveWarning)msg+=` ${leaveWarning}`;if(skippedWorkHolidays)msg+=` ${t('holidayBulkSkipped',{n:skippedWorkHolidays})}`;showToast(msg,(leaveWarning||skippedWorkHolidays)?4200:2400);
+  save({planningInteraction:true});renderAll();let msg=count?(state.language==='fr'?`✅ ${count} ${count===1?'jour':'jours'} rempli${count===1?'':'s'}.`:state.language==='en'?`✅ ${count} ${count===1?'day':'days'} filled.`:`✅ ${count} ${count===1?'dag':'dagen'} ingevuld.`):(state.language==='fr'?'ℹ️ Aucun jour rempli avec ces filtres.':state.language==='en'?'ℹ️ No days filled with these filters.':'ℹ️ Geen dagen ingevuld met deze filters.');const leaveWarning=id==='leave'?leaveOverWarning(selectedYear):'';if(leaveWarning)msg+=` ${leaveWarning}`;if(skippedWorkHolidays)msg+=` ${t('holidayBulkSkipped',{n:skippedWorkHolidays})}`;showToast(msg,(leaveWarning||skippedWorkHolidays)?4200:2400);
 }
 let quickFillMode='recurring';
 function renderStandardSchedulePicker(){
@@ -888,7 +891,7 @@ function applyStandardSchedule(scope,{saveAfter=true,toast=true}={}){
       if(changed){state.days[k]=slots;touched.add(k);}
     }
   }
-  if(saveAfter){save();renderAll();}
+  if(saveAfter){save({planningInteraction:true});renderAll();}
   if(toast)showToast(t('standardScheduleApplied',{n:formatNumber(touched.size)}));
   return touched.size;
 }

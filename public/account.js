@@ -13,8 +13,8 @@
   const LEGACY_AUTO_SYNC_KEY = 'mijntelewerk_auto_sync_v1';
   const SYNC_META_PREFIX = 'mijntelewerk_sync_meta_v2';
   const AUTO_SYNC_DELAY = 1100;
-  const ACCOUNT_PROMO_KEY = 'mijntelewerk_account_promo_v1';
-  const ACCOUNT_PROMO_SESSION_KEY = 'mijntelewerk_account_promo_visit_v1';
+  const ACCOUNT_PROMO_KEY = 'mijntelewerk_account_promo_v2';
+  const ACCOUNT_PROMO_SESSION_KEY = 'mijntelewerk_account_promo_visit_v2';
   const ACCOUNT_PROMO_DELAY = 45000;
   const ACCOUNT_PROMO_LATER_DAYS = 7;
 
@@ -34,9 +34,9 @@
 
   function getPromoState() {
     try {
-      return { visits:0, disabled:false, dismissedUntil:0, lastPromptAt:0, ...JSON.parse(localStorage.getItem(ACCOUNT_PROMO_KEY) || '{}') };
+      return { visits:0, planningActions:0, disabled:false, dismissedUntil:0, lastPromptAt:0, ...JSON.parse(localStorage.getItem(ACCOUNT_PROMO_KEY) || '{}') };
     } catch {
-      return { visits:0, disabled:false, dismissedUntil:0, lastPromptAt:0 };
+      return { visits:0, planningActions:0, disabled:false, dismissedUntil:0, lastPromptAt:0 };
     }
   }
 
@@ -61,6 +61,12 @@
     }
   }
 
+  function registerPromoPlanningInteraction() {
+    const promo = getPromoState();
+    promo.planningActions = Number(promo.planningActions || 0) + 1;
+    savePromoState(promo);
+  }
+
   function anotherDialogOpen() {
     return [...document.querySelectorAll('dialog[open]')].some(d => d.id !== 'accountPromoDialog');
   }
@@ -70,9 +76,10 @@
     const promo = getPromoState();
     if (promo.disabled || Date.now() < Number(promo.dismissedUntil || 0)) return false;
     const planned = plannedDateCount();
-    // Toon pas wanneer de gebruiker aantoonbaar waarde uit de planner haalt:
-    // 6 ingevulde kalenderdagen tijdens het eerste bezoek, of vanaf het tweede bezoek met minstens 2 dagen.
-    return planned >= 6 || (Number(promo.visits || 0) >= 2 && planned >= 2);
+    const planningActions = Number(promo.planningActions || 0);
+    // De basisinstellingen en het automatisch toepassen van een standaardrooster tellen niet mee.
+    // Toon de accounttip pas nadat de gebruiker de planner zelf een paar keer actief heeft gebruikt.
+    return planningActions >= 3 && planned >= 3;
   }
 
   function maybeShowAccountPromo() {
@@ -183,7 +190,8 @@
 
   async function sendMagicLink(email) {
     setFeedback(msg('Magic link wordt verstuurd…', 'Envoi du lien magique…', 'Sending magic link…'));
-    const redirectTo = location.protocol.startsWith('http') ? `${location.origin}${location.pathname}` : undefined;
+    const configuredRedirect = String(cfg.AUTH_REDIRECT_URL || '').trim();
+    const redirectTo = configuredRedirect || (location.protocol.startsWith('http') ? `${location.origin}/` : undefined);
     const options = redirectTo ? { emailRedirectTo: redirectTo } : undefined;
     const { error } = await client.auth.signInWithOtp({ email, options });
     if (error) {
@@ -929,7 +937,10 @@
     });
 
     window.addEventListener('mijntelewerk:state-changed', scheduleAutoSync);
-    window.addEventListener('mijntelewerk:state-changed', () => scheduleAccountPromo(8000));
+    window.addEventListener('mijntelewerk:state-changed', e => {
+      if (e.detail?.planningInteraction) registerPromoPlanningInteraction();
+      scheduleAccountPromo(8000);
+    });
     window.addEventListener('mijntelewerk:language-changed', async () => {
       renderAccountButton();
       if (currentUser) {
