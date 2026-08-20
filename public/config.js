@@ -8,5 +8,5 @@ window.MIJNTELEWERK_CONFIG = {
   // Leeg = automatisch de root van het huidige domein gebruiken.
   AUTH_REDIRECT_URL: '',
   // Contactadres voor feedback/bugs/suggesties vanuit de ?-uitleg:
-  FEEDBACK_EMAIL: ''
+  FEEDBACK_EMAIL: 'kevin.temmerman@hotmail.com'
 };
