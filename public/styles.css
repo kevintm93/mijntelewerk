@@ -3098,3 +3098,11 @@ html[data-theme="dark"] .section-help-tooltip{
 .holiday-count-status.excluded{background:rgba(231,170,48,.14);color:var(--text);border:1px solid rgba(231,170,48,.28)}
 @media(max-width:560px){.holiday-work-card{width:calc(100vw - 20px)}.holiday-work-actions{display:grid;grid-template-columns:1fr}.holiday-work-actions .btn{width:100%}}
 @media print{.holiday-count-status{font-size:5.2pt!important;padding:.5mm .8mm!important}}
+
+/* MVP 0.52 — stacking fix voor Slimme verlofplanner op smallere desktops.
+   Wanneer het paneel wegens beperkte ruimte over de rechterrand van de planner valt,
+   moet de verlofplanner boven de onderste planner-tabs liggen. De drawer zelf vormt
+   een stacking context; daarom verhogen we die context alleen zolang hij geopend is. */
+.leave-planner-drawer.open{
+  z-index:52;
+}
